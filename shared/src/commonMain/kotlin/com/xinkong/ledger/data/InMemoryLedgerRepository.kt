@@ -12,29 +12,29 @@ class InMemoryLedgerRepository : LedgerRepository {
     private var nextBookId = 1L
     private var nextBillId = 1L
 
-    override fun getAllAccountBooks(): List<AccountBook> = accountBooks.toList()
+    override suspend fun getAllAccountBooks(): List<AccountBook> = accountBooks.toList()
 
-    override fun addAccountBook(name: String) {
+    override suspend fun addAccountBook(name: String) {
         accountBooks.add(AccountBook(id = nextBookId++, name = name))
     }
 
-    override fun updateAccountBook(id: Long, name: String) {
+    override suspend fun updateAccountBook(id: Long, name: String) {
         val index = accountBooks.indexOfFirst { it.id == id }
         if (index != -1) {
             accountBooks[index] = accountBooks[index].copy(name = name)
         }
     }
 
-    override fun deleteAccountBook(id: Long) {
+    override suspend fun deleteAccountBook(id: Long) {
         accountBooks.removeAll { it.id == id }
         bills.removeAll { it.accountBookId == id }
     }
 
-    override fun getBillsByBookId(accountId: Long): List<Bill> =
+    override suspend fun getBillsByBookId(accountId: Long): List<Bill> =
         bills.filter { it.accountBookId == accountId }
             .sortedByDescending { it.date }
 
-    override fun addBill(accountId: Long, name: String, amount: Double, date: Long, note: String) {
+    override suspend fun addBill(accountId: Long, name: String, amount: Double, date: Long, note: String) {
         bills.add(Bill(
             id = nextBillId++,
             accountBookId = accountId,
@@ -45,7 +45,7 @@ class InMemoryLedgerRepository : LedgerRepository {
         ))
     }
 
-    override fun updateBill(id: Long, name: String, amount: Double, date: Long, note: String) {
+    override suspend fun updateBill(id: Long, name: String, amount: Double, date: Long, note: String) {
         val index = bills.indexOfFirst { it.id == id }
         if (index != -1) {
             bills[index] = bills[index].copy(
@@ -57,7 +57,7 @@ class InMemoryLedgerRepository : LedgerRepository {
         }
     }
 
-    override fun deleteBill(id: Long) {
+    override suspend fun deleteBill(id: Long) {
         bills.removeAll { it.id == id }
     }
 }

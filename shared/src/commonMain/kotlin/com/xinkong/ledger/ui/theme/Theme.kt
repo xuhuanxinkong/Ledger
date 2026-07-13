@@ -6,14 +6,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 private val LedgerColorScheme = lightColorScheme(
-    primary = Color(0xFF2E7D32) ,         // 深绿色 - 主色
+    primary = Color(0xFF10B981) ,         // 翠绿色 - 主色
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFC8E6C9), // 浅绿色
-    secondary = Color(0xFFFF6F00),        // 橙色 - 用于收入
+    primaryContainer = Color(0xFF047857), // 深绿色
+    secondary = Color(0xFF10B981),        // 绿色 - 用于收入
     onSecondary = Color.White,
-    error = Color(0xFFD32F2F),            // 红色 - 用于支出
+    error = Color(0xFF111827),            // 深灰色 - 用于支出
     surface = Color.White,
-    background = Color(0xFFF5F5F5),       // 浅灰背景
+    background = Color(0xFFF9FAFB),       // 浅灰背景
+    onSurface = Color(0xFF111827),
+    onBackground = Color(0xFF111827)
 )
 
 @Composable

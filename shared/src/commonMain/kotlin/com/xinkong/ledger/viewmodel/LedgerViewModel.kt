@@ -1,18 +1,18 @@
 package com.xinkong.ledger.viewmodel
 
 import androidx.lifecycle.ViewModel
-import com.xinkong.ledger.data.InMemoryLedgerRepository
 import com.xinkong.ledger.data.LedgerRepository
 import com.xinkong.ledger.model.AccountBook
 import com.xinkong.ledger.model.Bill
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
-class LedgerViewModel : ViewModel(){
-
-
-    // ---------------- 数据 ----------------
-    private val repository: LedgerRepository = InMemoryLedgerRepository()
+class LedgerViewModel(
+    private val repository: LedgerRepository
+) : ViewModel() {
 
     private val _accountBooks = MutableStateFlow<List<AccountBook>>(emptyList())
     val accountBooks: StateFlow<List<AccountBook>> = _accountBooks
@@ -26,44 +26,50 @@ class LedgerViewModel : ViewModel(){
     private val _editingBill = MutableStateFlow<Bill?>(null)
     val editingBill: StateFlow<Bill?> = _editingBill
 
+    // 用于在 ViewModel 外部启动协程
+    private val scope = CoroutineScope(Dispatchers.Default)
+
     init {
-        refreshAccountBooks()
+        scope.launch { refreshAccountBooks() }
     }
 
-
-    // ---------------- 操作 ----------------
-
-
     // ===== 账本操作 =====
+
     fun addAccountBook(name: String) {
-        repository.addAccountBook(name)
-        refreshAccountBooks()
+        scope.launch {
+            repository.addAccountBook(name)
+            refreshAccountBooks()
+        }
     }
 
     fun updateAccountBook(id: Long, name: String) {
-        repository.updateAccountBook(id, name)
-        refreshAccountBooks()
-        // 如果改的是当前账本，刷新一下
-        if (_currentBook.value?.id == id) {
-            _currentBook.value = repository.getAllAccountBooks().first { it.id == id }
+        scope.launch {
+            repository.updateAccountBook(id, name)
+            refreshAccountBooks()
+            if (_currentBook.value?.id == id) {
+                _currentBook.value = repository.getAllAccountBooks().first { it.id == id }
+            }
         }
     }
 
     fun deleteAccountBook(id: Long) {
-        repository.deleteAccountBook(id)
-        refreshAccountBooks()
-        // 如果删的是当前账本，回到账本列表
-        if (_currentBook.value?.id == id) {
-            _currentBook.value = null
-            _bills.value = emptyList()
+        scope.launch {
+            repository.deleteAccountBook(id)
+            refreshAccountBooks()
+            if (_currentBook.value?.id == id) {
+                _currentBook.value = null
+                _bills.value = emptyList()
+            }
         }
     }
 
     // ===== 账本切换 =====
 
     fun selectAccountBook(book: AccountBook) {
-        _currentBook.value = book
-        refreshBills(book.id)
+        scope.launch {
+            _currentBook.value = book
+            refreshBills(book.id)
+        }
     }
 
     fun backToBookList() {
@@ -75,8 +81,10 @@ class LedgerViewModel : ViewModel(){
 
     fun addBill(name: String, amount: Double, date: Long, note: String) {
         val bookId = _currentBook.value?.id ?: return
-        repository.addBill(bookId, name, amount, date, note)
-        refreshBills(bookId)
+        scope.launch {
+            repository.addBill(bookId, name, amount, date, note)
+            refreshBills(bookId)
+        }
     }
 
     fun startEditBill(bill: Bill) {
@@ -84,14 +92,18 @@ class LedgerViewModel : ViewModel(){
     }
 
     fun updateBill(id: Long, name: String, amount: Double, date: Long, note: String) {
-        repository.updateBill(id, name, amount, date, note)
-        _currentBook.value?.id?.let { refreshBills(it) }
-        _editingBill.value = null
+        scope.launch {
+            repository.updateBill(id, name, amount, date, note)
+            _currentBook.value?.id?.let { refreshBills(it) }
+            _editingBill.value = null
+        }
     }
 
     fun deleteBill(id: Long) {
-        repository.deleteBill(id)
-        _currentBook.value?.id?.let { refreshBills(it) }
+        scope.launch {
+            repository.deleteBill(id)
+            _currentBook.value?.id?.let { refreshBills(it) }
+        }
     }
 
     fun clearEditingBill() {
@@ -100,13 +112,11 @@ class LedgerViewModel : ViewModel(){
 
     // ===== 内部方法 =====
 
-    private fun refreshAccountBooks() {
+    private suspend fun refreshAccountBooks() {
         _accountBooks.value = repository.getAllAccountBooks()
     }
 
-    private fun refreshBills(bookId: Long) {
+    private suspend fun refreshBills(bookId: Long) {
         _bills.value = repository.getBillsByBookId(bookId)
     }
-
-
 }

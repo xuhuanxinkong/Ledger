@@ -5,15 +5,15 @@ import com.xinkong.ledger.model.Bill
 
 interface LedgerRepository {
 
-    fun getAllAccountBooks(): List<AccountBook>
-    fun addAccountBook(name: String)
-    fun updateAccountBook(id: Long,name: String)
-    fun deleteAccountBook(id: Long)
+    suspend fun getAllAccountBooks(): List<AccountBook>
+    suspend fun addAccountBook(name: String)
+    suspend fun updateAccountBook(id: Long, name: String)
+    suspend fun deleteAccountBook(id: Long)
 
-    fun getBillsByBookId(accountId: Long): List<Bill>
-    fun addBill(accountId: Long,name: String,amount: Double,
-                date: Long,note: String)
-    fun updateBill(id: Long,name: String,amount: Double,
-                   date: Long,note: String)
-    fun deleteBill(id: Long)
+    suspend fun getBillsByBookId(accountId: Long): List<Bill>
+    suspend fun addBill(accountId: Long, name: String, amount: Double,
+                date: Long, note: String)
+    suspend fun updateBill(id: Long, name: String, amount: Double,
+                   date: Long, note: String)
+    suspend fun deleteBill(id: Long)
 }

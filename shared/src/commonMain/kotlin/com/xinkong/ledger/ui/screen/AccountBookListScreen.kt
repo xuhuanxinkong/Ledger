@@ -1,37 +1,28 @@
 package com.xinkong.ledger.ui.screen
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.xinkong.ledger.model.AccountBook
-
 
 @Composable
 fun AccountBookListScreen(
@@ -39,74 +30,140 @@ fun AccountBookListScreen(
     onAddBook:(String)-> Unit,
     onUpdateBook: (Long, String) -> Unit,
     onDeleteBook: (Long) -> Unit,
-    onSelectBook: (AccountBook) -> Unit
-){
+    onSelectBook: (AccountBook) -> Unit,
+    onBack: (() -> Unit)? = null
+) {
     var showAdd by remember { mutableStateOf(false) }
     var editingBook by remember { mutableStateOf<AccountBook?>(null) }
-
+    
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("我的账本", fontWeight = FontWeight.Bold) },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary
+        containerColor = MaterialTheme.colorScheme.background,
+    ) { padding ->
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 64.dp, bottom = 24.dp, start = 24.dp, end = 24.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = { onBack?.invoke() },
+                    enabled = onBack != null,
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        Icons.Default.KeyboardArrowLeft,
+                        contentDescription = "返回",
+                        tint = MaterialTheme.colorScheme.onSurface.copy(
+                            alpha = if (onBack != null) 1f else 0.35f
+                        )
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "选择账本",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
-            )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showAdd = true },
-                containerColor = MaterialTheme.colorScheme.primary
-            ) {
-                Text("+", style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onPrimary)
             }
-        }
-    ){padding ->
-        if (accountBooks.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("还没有账本，点击右下角 + 创建",
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
-            }
-        } else {
+
+
             LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.fillMaxSize()
             ) {
                 items(accountBooks, key = { it.id }) { book ->
+                    // UI defaults to white cards as we don't have currentBookId passed here.
+                    val isSelected = false
+                    val bgColor = if (isSelected) MaterialTheme.colorScheme.primary else Color.White
+                    val contentColor = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                    val subContentColor = if (isSelected) Color.White.copy(alpha = 0.7f) else Color.Gray
+
                     Card(
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
                             .clickable { onSelectBook(book) },
+                        colors = CardDefaults.cardColors(containerColor = bgColor),
+                        shape = RoundedCornerShape(20.dp),
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
                         Row(
-                            modifier = Modifier.fillMaxWidth().padding(16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth().padding(20.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(book.name, style = MaterialTheme.typography.titleMedium)
-                            Row {
-                                TextButton(onClick = { editingBook = book }) {
-                                    Text("编辑")
+
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(if (isSelected) Color.White.copy(alpha = 0.2f) else MaterialTheme.colorScheme.background),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.List, contentDescription = "Book", tint = contentColor)
+                            }
+                            Spacer(modifier = Modifier.width(16.dp))
+                            
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(book.name, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = contentColor)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text("点击进入账本", fontSize = 14.sp, color = subContentColor)
+                            }
+                            
+
+                            var expanded by remember { mutableStateOf(false) }
+                            Box {
+                                IconButton(onClick = { expanded = true }) {
+                                    Icon(Icons.Default.MoreVert, contentDescription = "More", tint = Color.LightGray)
                                 }
-                                TextButton(onClick = { onDeleteBook(book.id) }) {
-                                    Text("删除", color = MaterialTheme.colorScheme.error)
+                                DropdownMenu(
+                                    expanded = expanded,
+                                    onDismissRequest = { expanded = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("编辑") },
+                                        onClick = {
+                                            expanded = false
+                                            editingBook = book
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("删除", color = MaterialTheme.colorScheme.error) },
+                                        onClick = {
+                                            expanded = false
+                                            onDeleteBook(book.id)
+                                        }
+                                    )
                                 }
                             }
                         }
+                    }
+                }
+                
+
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(20.dp))
+                            .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(20.dp))
+                            .clickable { showAdd = true }
+                            .padding(20.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Add", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text("新建账本", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                     }
                 }
             }
         }
     }
 
-
-    // 新增账本对话框
     if (showAdd) {
         NameInputDialog(
             title = "新增账本",
@@ -119,7 +176,6 @@ fun AccountBookListScreen(
         )
     }
 
-    // 编辑账本对话框
     editingBook?.let { book ->
         NameInputDialog(
             title = "编辑账本",
@@ -133,7 +189,6 @@ fun AccountBookListScreen(
     }
 }
 
-// 通用的名称输入对话框
 @Composable
 fun NameInputDialog(
     title: String,
@@ -142,7 +197,6 @@ fun NameInputDialog(
     onDismiss: () -> Unit
 ) {
     var text by remember { mutableStateOf(initialValue) }
-
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },

@@ -1,41 +1,38 @@
 package com.xinkong.ledger.ui.screen
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Create
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.xinkong.ledger.model.Bill
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlin.time.Clock
 
+private val billCategories = listOf("餐饮", "交通", "购物", "娱乐", "服饰", "日用", "居住", "其他")
+
 @Composable
 fun AddEditBillScreen(
-    editingBill: Bill?,  // null = 新增模式，非null = 编辑模式
+    editingBill: Bill?,
     onBack: () -> Unit,
     onSave: (name: String, amount: Double, date: Long, note: String) -> Unit
 ) {
@@ -44,120 +41,282 @@ fun AddEditBillScreen(
     var name by remember { mutableStateOf(editingBill?.name ?: "") }
     var amountText by remember {
         mutableStateOf(editingBill?.let {
-            // 编辑模式：把负数的负号去掉，用开关控制收支
             if (it.amount < 0) (-it.amount).toLong().toString()
             else it.amount.toLong().toString()
         } ?: "")
     }
     var isExpense by remember { mutableStateOf(editingBill?.let { it.amount < 0 } ?: true) }
+    var selectedCategory by remember(editingBill?.id) {
+        mutableStateOf<String?>(
+            editingBill?.name?.takeIf { it in billCategories }
+                ?: if (!isEditing) billCategories.first() else null
+        )
+    }
     var dateText by remember {
-        mutableStateOf(editingBill?.let { formatDate(it.date) } ?: formatDate(Clock.System.now().toEpochMilliseconds()))
+        mutableStateOf(
+            if (isEditing) formatDate(editingBill!!.date)
+            else formatDate(Clock.System.now().toEpochMilliseconds())
+        )
     }
     var note by remember { mutableStateOf(editingBill?.note ?: "") }
+    var errorMsg by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(if (isEditing) "编辑账单" else "新增账单",
-                        fontWeight = FontWeight.Bold)
-                },
-                navigationIcon = {
-                    TextButton(onClick = onBack) {
-                        Text("< 返回", color = MaterialTheme.colorScheme.onPrimary)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            )
-        }
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.fillMaxSize().padding(padding)
         ) {
-            // 账目名称
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text("账目名称") },
-                placeholder = { Text("例如：午饭、工资") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            // 金额
-            OutlinedTextField(
-                value = amountText,
-                onValueChange = { amountText = it.filter { c -> c.isDigit() || c == '.' } },
-                label = { Text("金额") },
-                placeholder = { Text("例如：30") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            // 收入/支出切换
+            // Top Bar
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 64.dp, bottom = 24.dp, start = 24.dp, end = 24.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                FilterChip(
-                    selected = !isExpense,
-                    onClick = { isExpense = false },
-                    label = { Text("收入") },
-                    modifier = Modifier.weight(1f)
+                Text(
+                    text = "取消",
+                    fontSize = 16.sp,
+                    color = Color.Gray,
+                    modifier = Modifier.clickable { onBack() }.padding(8.dp)
                 )
-                FilterChip(
-                    selected = isExpense,
-                    onClick = { isExpense = true },
-                    label = { Text("支出") },
-                    modifier = Modifier.weight(1f)
+                Text(
+                    text = if (isEditing) "编辑账单" else "记一笔",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "保存",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.clickable {
+                        errorMsg = null
+                        val amount = amountText.toDoubleOrNull()
+                        if (amount == null || amount <= 0) {
+                            errorMsg = "请输入有效金额"
+                            return@clickable
+                        }
+                        val finalAmount = if (isExpense) -amount else amount
+                        val timestamp = parseDate(dateText)
+                        if (timestamp == null) {
+                            errorMsg = "日期格式不正确，请使用 yyyy-MM-dd"
+                            return@clickable
+                        }
+                        val finalName = name.trim().ifBlank {
+                            selectedCategory ?: if (isExpense) "支出" else "收入"
+                        }
+                        onSave(finalName, finalAmount, timestamp, note.trim())
+                    }.padding(8.dp)
                 )
             }
 
-            // 日期
-            OutlinedTextField(
-                value = dateText,
-                onValueChange = { dateText = it },
-                label = { Text("日期") },
-                placeholder = { Text("格式：2026-06-24") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            // 备注
-            OutlinedTextField(
-                value = note,
-                onValueChange = { note = it },
-                label = { Text("备注") },
-                placeholder = { Text("可选") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // 保存按钮
-            Button(
-                onClick = {
-                    val amount = amountText.toDoubleOrNull() ?: return@Button
-                    val finalAmount = if (isExpense) -amount else amount
-                    val timestamp = parseDate(dateText) ?: return@Button
-                    onSave(name.trim(), finalAmount, timestamp, note.trim())
-                },
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-                enabled = name.isNotBlank() && amountText.isNotBlank() && dateText.isNotBlank()
+            // Tabs
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text(if (isEditing) "保存修改" else "添加账单",
-                    fontWeight = FontWeight.Bold)
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(if (isExpense) MaterialTheme.colorScheme.onSurface else Color.LightGray.copy(alpha = 0.3f))
+                        .clickable { isExpense = true }
+                        .padding(horizontal = 24.dp, vertical = 10.dp)
+                ) {
+                    Text(
+                        text = "支出",
+                        color = if (isExpense) Color.White else Color.Gray,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(if (!isExpense) MaterialTheme.colorScheme.onSurface else Color.LightGray.copy(alpha = 0.3f))
+                        .clickable { isExpense = false }
+                        .padding(horizontal = 24.dp, vertical = 10.dp)
+                ) {
+                    Text(
+                        text = "收入",
+                        color = if (!isExpense) Color.White else Color.Gray,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Amount Area
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "¥",
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.alignByBaseline()
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    BasicTextField(
+                        value = amountText,
+                        onValueChange = { amountText = it.filter { c -> c.isDigit() || c == '.' } },
+                        textStyle = TextStyle(
+                            fontSize = 56.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        ),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                        singleLine = true,
+                        modifier = Modifier
+                            .alignByBaseline()
+                            .width(IntrinsicSize.Min)
+                            .defaultMinSize(minWidth = 100.dp)
+                    )
+                }
+            }
+
+            // 错误提示
+            errorMsg?.let {
+                Text(
+                    text = it,
+                    color = MaterialTheme.colorScheme.error,
+                    fontSize = 14.sp,
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(48.dp))
+
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                val catsRow1 = billCategories.take(4)
+                val catsRow2 = billCategories.drop(4)
+                
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    catsRow1.forEach { cat ->
+                        CategoryItem(
+                            name = cat,
+                            isSelected = selectedCategory == cat,
+                            onClick = {
+                                selectedCategory = cat
+                                name = cat
+                            }
+                        )
+                    }
+                }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    catsRow2.forEach { cat ->
+                        CategoryItem(
+                            name = cat,
+                            isSelected = selectedCategory == cat,
+                            onClick = {
+                                selectedCategory = cat
+                                name = cat
+                            }
+                        )
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color.White)
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.List, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    BasicTextField(
+                        value = dateText,
+                        onValueChange = { dateText = it },
+                        textStyle = TextStyle(fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface),
+                        modifier = Modifier.width(80.dp)
+                    )
+                }
+
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color.White)
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.Create, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    BasicTextField(
+                        value = name,
+                        onValueChange = {
+                            name = it
+                            selectedCategory = it.takeIf { value -> value in billCategories }
+                        },
+                        textStyle = TextStyle(fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface),
+                        modifier = Modifier.fillMaxWidth(),
+                        decorationBox = { innerTextField ->
+                            if (name.isEmpty()) {
+                                Text("添加备注或名称...", color = Color.Gray, fontSize = 14.sp)
+                            }
+                            innerTextField()
+                        }
+                    )
+                }
             }
         }
     }
 }
 
-// 解析 yyyy-MM-dd 格式为时间戳
+@Composable
+fun CategoryItem(
+    name: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(56.dp)
+                .clip(CircleShape)
+                .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.White),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(name.take(1), fontWeight = FontWeight.Bold, color = if(isSelected) Color.White else MaterialTheme.colorScheme.onSurface)
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = name,
+            fontSize = 13.sp,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray
+        )
+    }
+}
+
+//修改年份格式
 fun parseDate(dateStr: String): Long? {
     return try {
         val parts = dateStr.split("-")

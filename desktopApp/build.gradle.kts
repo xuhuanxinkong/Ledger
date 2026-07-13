@@ -12,6 +12,8 @@ dependencies {
     implementation(compose.desktop.currentOs)
     implementation(libs.kotlinx.coroutinesSwing)
     implementation(libs.kotlinx.datetime)
+    implementation(libs.room.runtime)
+    implementation(libs.sqlite.bundled)
 
     implementation(libs.compose.uiToolingPreview)
 }
@@ -21,7 +23,7 @@ compose.desktop {
         mainClass = "com.xinkong.ledger.MainKt"
 
         nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb, TargetFormat.Exe)
             packageName = "com.xinkong.ledger"
             packageVersion = "1.0.0"
         }
